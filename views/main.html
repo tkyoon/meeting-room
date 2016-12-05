@@ -1,0 +1,680 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>JC1 회의실 예약</title>
+	<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+    <script type="text/javascript" src="/js/jquery-2.2.0.min.js"></script>
+    <script type="text/javascript" src="/js/jquery.avgrund.js"></script>
+    <script type="text/javascript" src="/js/jc1-mt.js"></script>
+    <script type="text/javascript" src="/js/util.js"></script>
+	<script type="text/javascript" src="/js/jquery-ui.js"></script>
+    <script type="text/javascript" src="/js/jc1-socket.js"></script>
+
+	<link rel="stylesheet" href="/css/avgrund.css"></link>
+	<link rel="stylesheet" href="/css/style.css"></link>
+
+<script type="text/javaScript" language="javascript">
+	var paramStr = decodeURIComponent(unescape("<%=param%>"));
+	var paramObj = JSON.parse(paramStr);
+	var gUserId = paramObj.user_id;
+	var gUserNm = paramObj.user_nm;
+	var gCDate = paramObj.cur_date;
+	var gCDateTxt = paramObj.cur_date_txt;
+	var gData = paramObj.data;
+	var gEFlag = paramObj.e_flag;
+	var gDColor = paramObj.date_color;
+	var gBgc	= paramObj.bgc;
+
+	$(window).load(function() {
+
+		var duration = 1000;
+		var bgcArr = ['#FFEB3B', '#FF91A5', '#C1EF8D', '#7DC6FF', '#44EAFF', '#FFBB00'];
+
+		if(gEFlag == "first"){
+			gBgc = bgcArr[Math.floor(Math.random() * bgcArr.length)];
+
+			//최초로그인시 effect Random적용
+			var effArr = ['blind', 'bounce', 'clip', 'fold', 'puff', 'shake', 'scale'];
+			var rnum = Math.floor(Math.random() * effArr.length);
+			var options = { percent: 100 }; // scale일때만 사용
+			$( "#body" ).show(effArr[rnum], options, duration);
+
+		}else{
+			var effect = 'slide';
+		    var options = { direction: gEFlag };
+		    $('#body').toggle(effect, options, duration);
+
+		}
+
+		//header background 색상 변경
+		$("#main_header").css("background-color", gBgc);
+
+
+	});
+
+	$(window.document).ready(function() {
+		//TODO 오픈시 주석해제해야함
+		$(document).on("keydown", disableF5);
+
+		//오늘날짜 표시
+		$("#date_txt").text(paramObj.cur_date_txt);
+
+		//날짜 색상변경
+		$("#date_txt").css("color", gDColor);
+
+		//로그인사용자 표시
+		$(".userNm").text(gUserNm);
+
+		//예약된 회의실 display
+		initData(gData);
+
+		/** 예약이 없는 시간대 클릭이벤트 bind */
+		$("div .tbox").bind("click", function(obj){
+			var objId = $(this).attr("id");
+			setBooking(objId, gUserNm);
+		});
+
+		$("#a_prev").bind("click", function(obj){
+			prevData();
+		});
+
+		$("#a_next").bind("click", function(obj){
+			nextData();
+		});
+
+		$("#btn_rev").bind("click", function(obj){
+			clickRev();
+		});
+
+		$(".cancel").bind("click", function(obj){
+			cancelRev($(this).parent().parent().attr("id"));
+		});
+	});
+
+	/**
+	 * 예약자 이름 설정
+	 */
+	function setName(objId, nm){
+		$("#"+objId+" li").text(nm);
+	}
+
+	/**
+	 * 예약자 이름 제거
+	 */
+	function unSetName(objId){
+		$("#"+objId+" li").text("");
+	}
+
+	/**
+	 * 예약중 설정
+	 */
+	function setBooking(objId, nm){
+		var alreadyOccupy = $("#"+objId+" li").text().length ? true : false;
+		if(alreadyOccupy) {
+			return;
+		}
+
+		var myCheck = $("#"+objId).hasClass("checked");
+
+		if(false == myCheck) {
+			$("#"+objId).addClass("checked").hide().fadeIn("slow");
+			socket.emit('book', {
+	             id		: objId
+	            ,rev	: '1'
+	            ,nm		: nm
+	            ,cont	: ''
+	            ,cDate	: gCDate
+	        });
+
+		} else {
+			$("#"+objId).removeClass("checked");
+			socket.emit('unbook', {
+	             id : objId
+	             ,cDate	: gCDate
+	        });
+
+		}
+	}
+
+	/**
+	 * 예약완료 설정
+	 */
+	function setOccupy(row) {
+		if(row.nm == gUserNm) {
+			$("#"+row.id+" li").addClass("cancel");
+		}
+
+		setName(row.id, row.nm);
+		$("#"+row.id+"").addClass("occupy");
+		$("#"+row.id+" ul:eq(1)").html(row.cont.split("\n").join("<br/>"));
+	}
+
+	/**
+	 * DB에서 data를 조회하여 display
+	 */
+	function initData(data) {
+		//console.log(data);
+		var rev;
+		$.each(data, function (idx, row) {
+			if(1 == row.rev) {
+				//예약중
+				if(row.nm != gUserNm) {
+					setName(row.id, row.nm);
+					$("#"+row.id).addClass("booking");
+					$("#"+row.id+" ul:eq(1)").addClass("bookingCont").text("Booking...");
+
+				} else {
+					$("#"+row.id).addClass("checked");
+				}
+
+			} else if(2 == row.rev) {
+				//예약완료
+				setOccupy(row);
+			}
+		});
+	}
+
+	/**
+	 * 다음날로 이동
+	 */
+	function nextData() {
+		//console.log("next");
+		var url = "/main";
+		var param = {
+			 nm 		: gUserNm
+			,e_flag 	: 'right'
+			,cur_date 	: getNextDay(gCDate)
+			,bgc		: gBgc
+		};
+		socket.emit('disconnected', gUserNm);
+		frmSubmit(url, param);
+	}
+
+	/**
+	 * 이전날로 이동
+	 */
+	function prevData(){
+		//console.log("prev");
+		var url = "/main";
+		var param = {
+			 nm 		: gUserNm
+			,e_flag 	: 'left'
+			,cur_date 	: getPrevDay(gCDate)
+			,bgc		: gBgc
+		};
+		socket.emit('disconnected', gUserNm);
+		frmSubmit(url, param);
+
+	}
+
+	/**
+	 * 예약 취소
+	 */
+	function cancelRev(id){
+		//console.log(id);
+		if(!confirm("예약을 취소하시겠습니까?")){
+			return;
+		}
+
+		//console.log("예약취소");
+		var url = "/delReservation";
+		var param = {
+			id : id
+			,date : gCDate
+		};
+
+		var success = function(data){
+			//console.log(data);
+			if(data[0].result == true){
+			//console.log("회의실 예약취소 성공");
+				//console.log(data[0]);
+				var obj = data[1];
+
+				//예약자 이름 제거
+				$("#"+id+" li").text("");
+
+				//예약자 이름 옆 취소버튼 제거
+				$("#"+id+" li").removeClass("cancel");
+
+				//예약취소 이벤트 bind 제거
+				$("#"+id+" li").unbind("click");
+
+				//내용 제거
+				$("#"+id+" ul:eq(1)").text("");
+
+				$("#"+id+"").removeClass("occupy");
+
+				socket.emit('cancelBook', {
+		             id		: id
+		            ,nm		: gUserNm
+		            ,cDate	: gCDate
+		        });
+
+			}else{
+				alert(data[0].message);
+			}
+
+		}
+
+		$.ajax({
+			type	: "POST"
+			,url	: url
+			,data	: param
+			,success: success
+		});
+	}
+
+	/**
+	 * 예약하기 버튼 클릭 -> 예약 내용입력 팝업 호출
+	 */
+	function clickRev(){
+		var chkId = [];
+
+		$(".checked").each(function(idx, data){
+			//console.log(idx);
+			//console.log(data);
+			chkId.push({
+				id : $(data).attr("id")
+			});
+		});
+
+		if(chkId.length == 0 ){
+			alert("예약하려는 시간을 선택해주세요.");
+			initPopup(true);
+			return;
+		}else{
+			initPopup(false);
+		}
+
+		var msg = "";
+
+		$("#p_header").html('<font style="font-weight:bold;color:blue;">'+gCDateTxt + "</font> 회의실을 예약하시겠습니까?");
+		var msgArr = getMeetingTime(chkId);
+
+		if("" != msgArr[0].toString()){
+			var bMsg = msgArr[0].toString()
+			var bMsgArr = bMsg.split(",");
+			//msg += '<ul style="padding:0 0 0 5px;margin:5px 0 0 0;">□ 대회의실 예약시간</ul>';
+			for(var i in bMsgArr){
+				msg += '<li style="padding-left:10px;">☞ ' + bMsgArr[i] + '</li>';
+			}
+		}
+
+		$("#ul_bmr").append(msg);
+
+		msg = "";
+
+		if("" != msgArr[1]){
+			msg += "\n";
+			var sMsgArr = msgArr[1].split(",");
+			//msg += '<ul style="padding:0 0 0 5px;margin:5px 0 0 0;">□ 소회의실 예약시간</ul>';
+			for(var i in sMsgArr){
+				msg += '<li style="padding-left:10px;">☞ ' + sMsgArr[i] + '</li>';
+			}
+		}
+
+		$("#ul_smr").append(msg);
+	}
+
+	/**
+	 * 예약저장
+	 */
+	function saveRev(){
+		var chkId = [];
+
+		$(".checked").each(function(idx, data){
+			chkId.push({
+				id : $(data).attr("id")
+			});
+		});
+
+		var regCnt = 0;
+		var reqCnt = chkId.length;
+
+		var successFn = function(data) {
+			//console.log("회의실 예약 성공");
+			//console.log(data);
+			if(data[0].result == true){
+				//console.log(data[0]);
+				var obj = data[1];
+				//check 모양 제거
+				$("#"+obj.id).removeClass("checked");
+
+				//예약자 이름 옆 취소버튼 생성
+				$("#"+obj.id+" li").addClass("cancel");
+
+				//예약취소 이벤트 bind
+				$("#"+obj.id+" li").bind("click", function(){
+					cancelRev(obj.id);
+				});
+
+				//예약자 이름 추가
+				setName(obj.id, obj.nm);
+				$("#"+obj.id+"").addClass("occupy");
+
+				//내용 추가
+				$("#"+obj.id+" ul:eq(1)").html(obj.cont.split("\n").join("<br/>"));
+				socket.emit('booked', {
+		             id		: obj.id
+		            ,rev	: '2'
+		            ,nm		: obj.nm
+		            ,cont	: obj.cont
+		            ,cDate	: gCDate
+		        });
+
+			}else{
+				alert(data[0].message);
+			}
+
+			regCnt++;
+
+			if(reqCnt == regCnt){
+				//alert("예약완료하였습니다.");
+				//console.log(chkId);
+				var msgArr = getMeetingTime(chkId);
+				//console.log(msgArr);
+
+				regCnt = 0;
+
+				//Send e-mail
+				var param = {
+					 nm		: obj.nm
+					,cont 	: obj.cont
+					,date 	: gCDateTxt
+					,btime 	: msgArr[0].toString()
+					,stime 	: msgArr[1].toString()
+				}
+
+				console.log("sendmail 호출");
+				sendMail(param);
+				closePopup();
+			}
+		}
+
+		var url = "/postReservation";
+
+		$(".checked").each(function(idx, data){
+			var param = {
+				 date 	: gCDate
+				,id 	: $(data).attr("id")
+				,nm		: gUserNm
+				,cont	: $("#txa_cont").val()
+			};
+
+			$.ajax({
+				type	: "POST"
+				,url	: url
+				,data	: param
+				,success: successFn
+			});
+		});
+	}
+
+</script>
+</head>
+<body>
+<div id="body">
+<header id="main_header">
+	<div id="div_ci">
+		<h2>JC1 회의실 예약(<span class="userNm"></span>)</h2>
+	</div>
+	<div id="div_date">
+		<a href="#" id="a_prev"><h2>◀</h2></a>
+		<h2 id="date_txt"></h2>
+		<a href="#" id="a_next"><h2>▶</h2></a>
+	</div>
+<!-- 	<div id="div_rev_btn">
+		<a href="#" id="btn_rev" class="dribble"><h2>예약하기</h2></a>
+	</div>-->
+	<div class="ribbon-wrapper-green">
+ 		<div class="ribbon-green">
+			<a href="#" id="btn_rev">예약하기</a>
+		 </div>
+	</div>
+</header>
+
+<div id="content">
+	<section id="b_section">
+	    <div id="sign" class="arrow blue">
+			<h2>대회의실</h2>
+	    </div>
+	    <div id="l_timearea">
+			<div class="tbox" id="b0900">
+				<ul class="boxheader">
+					09:00-09:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b0930">
+				<ul class="boxheader">
+					09:30-10:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b1000">
+				<ul class="boxheader">
+					10:00-10:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b1030">
+				<ul class="boxheader">
+					10:30-11:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b1100">
+				<ul class="boxheader">
+					11:00-11:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b1130">
+				<ul class="boxheader">
+					11:30-12:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b1200">
+				<ul class="boxheader">
+					12:00-12:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b1230">
+				<ul class="boxheader">
+					12:30-13:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b1300">
+				<ul class="boxheader">
+					13:00-13:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+	    </div>
+	    <div id="r_timearea">
+			<div class="tbox" id="b1330">
+				<ul class="boxheader">
+					13:30-14:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b1400">
+				<ul class="boxheader">
+					14:00-14:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b1430">
+				<ul class="boxheader">
+					14:30-15:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b1500">
+				<ul class="boxheader">
+					15:00-15:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b1530">
+				<ul class="boxheader">
+					15:30-16:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b1600">
+				<ul class="boxheader">
+					16:00-16:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b1630">
+				<ul class="boxheader">
+					16:30-17:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b1700">
+				<ul class="boxheader">
+					17:00-17:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="b1730">
+				<ul class="boxheader">
+					17:30-18:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+	    </div>
+	</section>
+	<div id="div_budr"></div>
+	<section id="s_section">
+	    <div id="sign" class="arrow green">
+			<h2>소회의실</h2>
+	    </div>
+	    <div id="l_timearea">
+	    	<div class="tbox" id="s0900">
+				<ul class="boxheader">
+					09:00-09:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s0930">
+				<ul class="boxheader">
+					09:30-10:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s1000">
+				<ul class="boxheader">
+					10:00-10:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s1030">
+				<ul class="boxheader">
+					10:30-11:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s1100">
+				<ul class="boxheader">
+					11:00-11:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s1130">
+				<ul class="boxheader">
+					11:30-12:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s1200">
+				<ul class="boxheader">
+					12:00-12:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s1230">
+				<ul class="boxheader">
+					12:30-13:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s1300">
+				<ul class="boxheader">
+					13:00-13:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+	    </div>
+	    <div id="r_timearea">
+	    	<div class="tbox" id="s1330">
+				<ul class="boxheader">
+					13:30-14:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s1400">
+				<ul class="boxheader">
+					14:00-14:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s1430">
+				<ul class="boxheader">
+					14:30-15:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s1500">
+				<ul class="boxheader">
+					15:00-15:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s1530">
+				<ul class="boxheader">
+					15:30-16:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s1600">
+				<ul class="boxheader">
+					16:00-16:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s1630">
+				<ul class="boxheader">
+					16:30-17:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s1700">
+				<ul class="boxheader">
+					17:00-17:30<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+			<div class="tbox" id="s1730">
+				<ul class="boxheader">
+					17:30-18:00<li class="booker"></li>
+				</ul>
+				<ul class="boxcontent"></ul>
+			</div>
+	    </div>
+	</section>
+</div>
+
+<footer id="main_footer" class="layered-paper">
+    <h3>© JC1 Corp.</h3>
+    <!-- <address>Website Layout Basic</address> -->
+</footer>
+</div>
+</body>
+</html>

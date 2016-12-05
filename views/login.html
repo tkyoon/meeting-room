@@ -1,0 +1,100 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>JC1 회의실 예약</title>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-2.2.0.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- <script type="text/javascript" src="http://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+	<link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css"></link> -->
+
+	<style>
+	<!-- 초기화코드 -->
+	*{
+		margin:0;
+		padding:0;
+
+	}
+
+	html, body {
+		margin:0;
+		font-family: "Malgun Gothic", "굴림", "Gulim", "Arial";
+		font-size:10pt;
+		height : 100%;
+	}
+
+	li{
+		list-style:none;
+	}
+
+	a{
+		text-decoration:none;
+	}
+
+	img{
+		border:0;
+	}
+
+	.body {
+		width: 100%;
+		height: 100%;
+		background-color: #E8E8E8;
+	}
+
+	.logBox{
+		width:300px;
+		border:solid 1px white;
+	}
+
+	.logBox ul{
+		padding:0;
+	}
+
+	.inpLog{
+		width:200px;
+	}
+
+	.w90{
+		width:90px;
+		display:inline-block;
+	}
+
+	</style>
+
+	<script type="text/javaScript" language="javascript">
+		$(window.document).ready(function() {
+			/* $("#inp_login").bind("click", function(){
+
+				return;
+				document.inp_login.submit();
+
+				var formData = $("#frm_login").serialize();
+
+				$.ajax({
+ 					type : "POST"
+ 					,url : "/main"
+ 					,cache : false
+ 					,data : formData
+ 					,success : onSuccess
+ 					,error : onError
+				});
+			}); */
+		});
+
+		/* function onSuccess(json, status){alert($.trim(json));}
+		function onError(data, status){alert("error");} */
+
+	</script>
+</head>
+<body>
+<div class="body" height="100%">
+<form name="frm_login" id="frm_login" action="/main" method="post">
+	<div class="logBox">
+		<ul>
+			<span class="w90">사용자명 </span><input type="text" class=".inpLog" name="nm" value="윤태경" /><br>
+		</ul>
+		<input type="submit" id="inp_login" value="로그인"/>
+	</div>
+</form>
+</div>
+</body>
+</html>

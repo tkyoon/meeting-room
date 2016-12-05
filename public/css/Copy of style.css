@@ -1,0 +1,183 @@
+* {
+	margin: 0;
+	padding: 0;
+}
+
+html, body, textarea {
+	margin: 0;
+	font-family: "Malgun Gothic", "굴림", "Gulim", "Arial";
+	font-size: 10pt;
+	height: 100%;
+}
+
+li {
+	list-style: none;
+}
+
+a {
+	text-decoration: none;
+}
+
+img {
+	border: 0;
+}
+
+.body {
+	width: 100%;
+	height: 100%;
+	background-color: #E8E8E8;
+}
+
+.head {
+	width: 100%;
+	height: 45px;
+	/* border : solid 1px red; */
+	background-color: #FFBB00;
+}
+
+.date {
+	height: 45px;
+	top: -45px;
+	width: 100%;
+	background: transparent;
+	text-align: center;
+	vertical-align: middle;
+	font-size: 22pt;
+	position: relative;
+}
+
+.userNm {
+	height: 45px;
+	width: 100%;
+	background: transparent;
+	text-align: right;
+	vertical-align: middle;
+	font-size: 22pt;
+	"
+}
+
+.wrap {
+	width: 100%;
+	/* height: 100%; */
+	/* border : solid 1px red; */
+	margin-top: 7px;
+}
+
+.content {
+	width: 1120px;
+	height: auto;
+	background-color: #E8E8E8;
+	position: relative;
+	margin: auto;
+}
+
+.timearea {
+	width: 220px;
+	/* border : solid 1px red; */
+	background-color: #FFFFFF;
+	float: left;
+}
+
+.tbox {
+	height: 65px;
+	border: solid 1px #DDDDDD;
+	margin: 10px;
+}
+
+.tbox:hover {
+	/* mouse over */
+
+}
+
+.tbox:active {
+	/* click */
+
+}
+
+.boxheader {
+	border-bottom: solid 1px #DDDDDD;
+	width: 194px;
+	padding: 3px 0 3px 4px;
+	margin: 0;
+}
+
+li {
+	list-style: none;
+	padding-left: 0px;
+}
+
+.booker {
+	float: right;
+	padding-right: 3px;
+}
+
+.boxcontent {
+	padding: 3px 0 3px 4px;
+	margin: 0;
+	height: 34px;
+	overflow-y: auto;
+}
+
+.booking {
+	border: dashed 1px #A29F9F;
+	border-radius:4px;
+	box-shadow:1px 1px 1px #FFBB00;
+}
+
+.booking .boxheader {
+	border-bottom: solid 1px #DDDDDD;
+	width: 193px;
+	padding: 3px 0 3px 4px;
+	margin: 0;
+}
+
+.bookingCont {
+	text-align: center;
+	margin-top: 8px;
+	font-weight: bold;
+	color: #A29F9F;
+	text-decoration: blink;
+}
+
+.checked {
+	border: solid 1px #A29F9F;
+	background-image: url('/img/check.png');
+	background-repeat: no-repeat;
+	padding-right: 20px;
+	border-radius:4px;
+	box-shadow:1px 1px 1px #6BD449;
+}
+
+.checked .boxheader {
+	border-bottom: solid 1px #DDDDDD;
+	width: 172px;
+	padding-left: 25px;
+}
+
+.cancel {
+	background-image: url('/img/close.png');
+	background-repeat: no-repeat;
+	background-position: right bottom;
+	padding-right: 20px;
+	cursor: pointer;
+}
+
+.btnWrap {
+	margin: auto;
+	left: 15%;
+	position: absolute;
+	width: 50px;
+	height: 50px;
+	z-index: 999;
+}
+
+.btnc {
+	width: 60px;
+	height: 30px;
+	margin: 0;
+}
+
+.occupy {
+	border-radius:4px;
+	box-shadow:1px 1px 1px #ED2F2F;
+}

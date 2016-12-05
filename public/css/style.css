@@ -1,0 +1,352 @@
+/* 초기화 스타일 */
+* {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font-family: "Malgun Gothic", "굴림", "Gulim", "Arial";
+	font-size: 10pt;
+	background-color: #F7F7F7;
+}
+
+textarea {
+	font-family: "Malgun Gothic", "굴림", "Gulim", "Arial";
+	font-size: 10pt;
+}
+
+li {
+	list-style: none;
+	padding-left: 0px;
+}
+
+a {
+	text-decoration: none;
+}
+
+img {
+	border: 0;
+}
+
+/* slide effect를 위한 div */
+#body {
+	display:none;
+}
+
+
+/* header */
+#main_header {
+	background-color: #FFBB00;
+	/* 중앙 정렬*/
+	width: 960px;
+	margin: 0 auto;
+	margin-top: 15px;
+	/* 절대 좌표 */
+	height: 85px;
+	position: relative;
+	box-shadow: 2px 0px 2px #A7A3A3;
+}
+
+#main_header>#div_ci {
+	position: absolute;
+	left: 20px;
+	top: 30px;
+}
+
+#main_header>#div_rev_btn {
+	position: absolute;
+	right: 10px;
+	top: 30px;
+	background-color: orange;
+}
+
+#main_header>#div_date {
+	position: absolute;
+	left: 380px;
+	top: 30px;
+    display: inline-flex;
+	/* background-color: gray; */
+}
+
+/* content layout */
+#content {
+	/* 중앙 정렬 */
+	width: 960px;
+	height: 750px;
+	margin: 0 auto;
+	/* 수평 레이아웃 구성 */
+	overflow: hidden;
+	background-color: #FFFFFF;
+	position: relative;
+	box-shadow: 2px 0px 2px #A7A3A3;
+}
+
+#content>#b_section {
+	width: 480px;
+	float: left;
+	background-color: #D6D6D6;
+	position: relative;
+}
+
+#content>#b_section>#sign {
+	position: absolute;
+	left: 10px;
+	top: 10px;
+	width: 100px;
+	text-align: center;
+	color: #FFFFFF;
+	/* background-color:red; */
+}
+
+#content>#div_budr {
+	position: absolute;
+	left: 480px;
+	top: px;
+	width: 1px;
+	height: 750px;
+	background-color: #DDDDDD;
+}
+
+#content>#b_section>#l_timearea {
+	position: absolute;
+	left: 10px;
+	top: 40px;
+	width: 225px;
+	/* background-color:blue; */
+}
+
+#content>#b_section>#r_timearea {
+	position: absolute;
+	left: 245px;
+	top: 40px;
+	width: 225px;
+	/* background-color:blue; */
+}
+
+#content>#s_section {
+	width: 480px;
+	float: right;
+	background-color: #9EEF55;
+	position: relative;
+}
+
+#content>#s_section>#sign {
+	position: absolute;
+	left: 10px;
+	top: 10px;
+	width: 100px;
+	text-align: center;
+	color: #FFFFFF;
+	/* background-color:red; */
+}
+
+#content>#s_section>#l_timearea {
+	position: absolute;
+	left: 10px;
+	top: 40px;
+	width: 225px;
+	/* background-color:blue; */
+}
+
+#content>#s_section>#r_timearea {
+	position: absolute;
+	left: 245px;
+	top: 40px;
+	width: 225px;
+	/* background-color:blue; */
+}
+
+/* content time area */
+.tbox {
+	height: 65px;
+	border: solid 1px #DDDDDD;
+	margin: 10px 0 10px 0;
+}
+
+.tbox:hover {
+	/* mouse over */
+
+}
+
+.tbox:active {
+	/* click */
+
+}
+
+.boxheader {
+	border-bottom: solid 1px #DDDDDD;
+	width: 219px;
+	padding: 3px 0 3px 4px;
+	margin: 0;
+}
+
+.booker {
+	float: right;
+	padding-right: 3px;
+}
+
+.boxcontent {
+	padding: 3px 0 3px 4px;
+	margin: 0;
+	height: 34px;
+	overflow-y: auto;
+}
+
+.booking {
+	border: dashed 1px #A29F9F;
+	border-radius: 4px;
+	box-shadow: 1px 1px 1px #FFBB00;
+}
+
+.booking .boxheader {
+	border-bottom: solid 1px #DDDDDD;
+	width: 218px;
+	padding: 3px 0 3px 4px;
+	margin: 0;
+}
+
+.bookingCont {
+	text-align: center;
+	margin-top: 8px;
+	font-weight: bold;
+	color: #A29F9F;
+	text-decoration: blink;
+}
+
+.checked {
+	border: solid 1px #A29F9F;
+	background-image: url('/img/check.png');
+	background-repeat: no-repeat;
+	padding-right: 20px;
+	border-radius: 4px;
+	box-shadow: 1px 1px 1px #6BD449;
+}
+
+.checked .boxheader {
+	border-bottom: solid 1px #DDDDDD;
+	width: 198px;
+	padding-left: 25px;
+}
+
+.cancel {
+	background-image: url('/img/close.png');
+	background-repeat: no-repeat;
+	background-position: right bottom;
+	padding-right: 20px;
+	cursor: pointer;
+}
+
+.occupy {
+	border-radius:4px;
+	box-shadow:1px 1px 1px #ED2F2F;
+}
+
+/* footer */
+#main_footer {
+	/* 중앙 정렬 */
+	width: 960px;
+	margin: 0 auto;
+	margin-bottom: 10px;
+	background-color: #626567;
+	/* 테두리 */
+	padding: 10px 0 10px 0;
+	/* 글자 정렬 */
+	text-align: center;
+	color: #FFFFFF;
+}
+
+/* etc library css */
+
+/* Right Ribbon css */
+.arrow {
+	width: 0;
+	height: 0;
+	border-right: 15px solid transparent;
+	display: inline-block;
+}
+
+.blue {
+	border-left: 15px solid #03A9F4;
+	border-top: 15px solid #03A9F4;
+	border-bottom: 15px solid #03A9F4;
+}
+
+.green {
+	border-left: 15px solid #66BB6A;
+	border-top: 15px solid #66BB6A;
+	border-bottom: 15px solid #66BB6A;
+}
+
+.arrow h2 {
+	position: absolute;
+	top: -15px;
+}
+
+/* footer layered shadow css */
+.layered-paper {
+	background: #eee;
+	box-shadow: 2px 0 2px #A7A3A3, /* The top layer shadow */
+	        0 10px 0 -5px #A0A5A9, /* The second layer */
+	        0 10px 1px -4px rgba(0, 0, 0, 0.15),
+		/* The second layer shadow */
+	        0 20px 0 -10px #CED0D2, /* The third layer */
+	        0 20px 1px -9px rgba(0, 0, 0, 0.15);
+	/* The third layer shadow */
+	padding: 30px;
+
+	/* box-shadow:2px 0px 2px #A7A3A3; */
+}
+
+/* 예약하기 Ribbon css */
+.ribbon-wrapper-green {
+	width: 85px;
+	height: 88px;
+	overflow: hidden;
+	position: absolute;
+	top: -3px;
+	right: -3px;
+}
+
+.ribbon-green {
+	font: bold 15px Sans-Serif;
+	color: #333;
+	text-align: center;
+	text-shadow: rgba(255, 255, 255, 0.5) 0px 1px 0px;
+	-webkit-transform: rotate(45deg);
+	-moz-transform: rotate(45deg);
+	-ms-transform: rotate(45deg);
+	-o-transform: rotate(45deg);
+	position: relative;
+	padding: 7px 0;
+	left: -5px;
+	top: 13px;
+	width: 120px;
+	background-color: #BFDC7A;
+	background-image: -webkit-gradient(linear, left top, left bottom, from(#BFDC7A),
+		to(#8EBF45));
+	background-image: -webkit-linear-gradient(top, #BFDC7A, #8EBF45);
+	background-image: -moz-linear-gradient(top, #BFDC7A, #8EBF45);
+	background-image: -ms-linear-gradient(top, #BFDC7A, #8EBF45);
+	background-image: -o-linear-gradient(top, #BFDC7A, #8EBF45);
+	color: #6a6340;
+	-webkit-box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.3);
+	-moz-box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.3);
+	box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.3);
+}
+
+.ribbon-green:before, .ribbon-green:after {
+	content: "";
+	border-top: 3px solid #6e8900;
+	border-left: 3px solid transparent;
+	border-right: 3px solid transparent;
+	position: absolute;
+	bottom: -3px;
+}
+
+.ribbon-green:before {
+	left: 0;
+}
+
+.ribbon-green:after {
+	right: 0;
+}

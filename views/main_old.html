@@ -1,0 +1,798 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>JC1 회의실 예약</title>
+    <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+    <script type="text/javascript" src="/js/jquery-2.2.0.min.js"></script>
+    <script type="text/javascript" src="/js/jquery.avgrund.js"></script>
+    <script type="text/javascript" src="/js/jc1-mt.js"></script>
+
+	<link rel="stylesheet" href="/css/bootstrapc.css"></link>
+	<link rel="stylesheet" href="/css/avgrund.css"></link>
+	<link rel="stylesheet" href="/css/style.css"></link>
+
+<script type="text/javaScript" language="javascript">
+	// 소켓 이벤트를 수행합니다.
+    var socket = io.connect();
+
+    // 이벤트를 연결합니다.
+    socket.on('book', function (data) {
+    	//console.log(data);
+		if(data.nm != gUserNm && data.cDate == gCDate) {
+			setName(data.id, data.nm);
+			$("#"+data.id).addClass("booking");
+			$("#"+data.id+" ul:eq(1)").addClass("bookingCont").text("Booking...");
+		}
+    });
+
+    socket.on('booked', function (data) {
+		if(data.nm != gUserNm && data.cDate == gCDate) {
+			setName(data.id, data.nm);
+			$("#"+data.id).removeClass("booking");
+			$("#"+data.id+"").addClass("occupy");
+			$("#"+data.id+" ul:eq(1)").removeClass("bookingCont").html(data.cont.split("\n").join("<br/>"));
+		}
+    });
+
+    socket.on('cancelBook', function (data) {
+    	console.log("cancelBook");
+    	console.log(data);
+		if(data.nm != gUserNm && data.cDate == gCDate) {
+			//예약자 이름 제거
+			$("#"+data.id+" li").text("");
+
+			//내용 제거
+			$("#"+data.id+" ul:eq(1)").text("");
+
+			$("#"+data.id+"").removeClass("occupy");
+		}
+
+    });
+
+    socket.on('unbook', function (data) {
+    	if(data.cDate == gCDate) {
+	    	unSetName(data.id);
+			$("#"+data.id).removeClass("booking");
+			$("#"+data.id+" ul:eq(1)").removeClass("bookingCont").text("");
+    	}
+    });
+
+    socket.on('occupy', function (data) {
+    	if(data.nm != gUserNm && data.cDate == gCDate) {
+    		//setOccupy(data);
+    	}
+    });
+
+    socket.on('dup_user', function (userNm) {
+    	if(userNm == gUserNm) {
+	    	alert("중복사용자 로그인! 기존사용자 로그아웃처리!");
+	    	location.href="/";
+    	}
+    });
+
+    socket.on('disconnected', function() {
+		socket.emit('disconnected', gUserNm);
+       });
+</script>
+
+<script type="text/javaScript" language="javascript">
+
+	function disableF5(e) {
+		if ((e.which || e.keyCode) == 116 || (e.which || e.keyCode) == 82) e.preventDefault();
+	}
+
+	var paramStr = decodeURIComponent(unescape("<%=param%>"));
+	var paramObj = JSON.parse(paramStr);
+	var gUserId = paramObj.user_id;
+	var gUserNm = paramObj.user_nm;
+	var gCDate = paramObj.cur_date;
+	var gCDateTxt = paramObj.cur_date_txt;
+	var gData = paramObj.data;
+
+	$(window.document).ready(function() {
+		//$(document).on("keydown", disableF5);
+
+		//오늘날짜 표시
+		$("#date_txt").text(paramObj.cur_date_txt);
+		$(".userNm").text(gUserNm);
+
+		//예약된 회의실 display
+		initData(gData);
+
+		/** 예약이 없는 시간대 클릭이벤트 bind */
+		$("div .tbox").bind("click", function(obj){
+			var objId = $(this).attr("id");
+			setBooking(objId, gUserNm);
+		});
+
+		$("#a_prev").bind("click", function(obj){
+			prevData();
+		});
+
+		$("#a_next").bind("click", function(obj){
+			nextData();
+		});
+
+		$("#btn_rev").bind("click", function(obj){
+			clickRev();
+		});
+
+		$(".cancel").bind("click", function(obj){
+			cancelRev($(this).parent().parent().attr("id"));
+		});
+	});
+
+	function setName(objId, nm){
+		$("#"+objId+" li").text(nm);
+	}
+
+	function unSetName(objId){
+		$("#"+objId+" li").text("");
+	}
+
+	function setBooking(objId, nm){
+		var alreadyOccupy = $("#"+objId+" li").text().length ? true : false;
+		if(alreadyOccupy) {
+			return;
+		}
+
+		var myCheck = $("#"+objId).hasClass("checked");
+
+		if(false == myCheck) {
+			$("#"+objId).addClass("checked").hide().fadeIn("slow");
+			socket.emit('book', {
+	             id		: objId
+	            ,rev	: '1'
+	            ,nm		: nm
+	            ,cont	: ''
+	            ,cDate	: gCDate
+	        });
+
+		} else {
+			$("#"+objId).removeClass("checked");
+			socket.emit('unbook', {
+	             id : objId
+	             ,cDate	: gCDate
+	        });
+
+		}
+	}
+
+	function setOccupy(row) {
+		if(row.nm == gUserNm) {
+			$("#"+row.id+" li").addClass("cancel");
+		}
+
+		setName(row.id, row.nm);
+		$("#"+row.id+"").addClass("occupy");
+		$("#"+row.id+" ul:eq(1)").html(row.cont.split("\n").join("<br/>"));
+	}
+
+	function initData(data) {
+		//console.log(data);
+		var rev;
+		$.each(data, function (idx, row) {
+			if(1 == row.rev) {
+				//예약중
+				if(row.nm != gUserNm) {
+					setName(row.id, row.nm);
+					$("#"+row.id).addClass("booking");
+					$("#"+row.id+" ul:eq(1)").addClass("bookingCont").text("Booking...");
+
+				} else {
+					$("#"+row.id).addClass("checked");
+				}
+
+			} else if(2 == row.rev) {
+				//예약완료
+				setOccupy(row);
+			}
+		});
+	}
+
+	function nextData() {
+		console.log("next");
+		var url = "/main";
+		var param = {
+			nm : gUserNm
+			,cur_date : getNextDay(gCDate)
+		};
+		socket.emit('disconnected', gUserNm);
+		frmSubmit(url, param);
+	}
+
+	function prevData(){
+		console.log("prev");
+		var url = "/main";
+		var param = {
+			nm : gUserNm
+			,cur_date : getPrevDay(gCDate)
+		};
+		socket.emit('disconnected', gUserNm);
+		frmSubmit(url, param);
+
+	}
+
+	function frmSubmit(url, params, method) {
+	    method = method || "post";  //method 부분은 입력안하면 자동으로 post가 된다.
+	    var form = document.createElement("form");
+	    form.setAttribute("method", method);
+	    form.setAttribute("action", url);
+	    //input type hidden name(key) value(params[key]);
+	    for(var key in params) {
+	        var hiddenField = document.createElement("input");
+	        hiddenField.setAttribute("type", "hidden");
+	        hiddenField.setAttribute("name", key);
+	        hiddenField.setAttribute("value", params[key]);
+	        form.appendChild(hiddenField);
+	    }
+	    document.body.appendChild(form);
+	    form.submit();
+	}
+
+	function getNextDay(dateStr){
+		var date = convertDate(dateStr);
+	    date.setDate(date.getDate() + 1);
+	    var mymonth = date.getMonth() + 1;
+	    var myweekday = date.getDate();
+	    return (date.getFullYear() + ((mymonth < 10) ? "0" : "") + mymonth + ((myweekday < 10) ? "0" : "") + myweekday);
+	}
+
+	function getPrevDay(dateStr){
+		var date = convertDate(dateStr);
+	    date.setDate(date.getDate() - 1);
+	    var mymonth = date.getMonth() + 1;
+	    var myweekday = date.getDate();
+	    return (date.getFullYear() + ((mymonth < 10) ? "0" : "") + mymonth + ((myweekday < 10) ? "0" : "") + myweekday);
+	}
+
+	function convertDate(dateStr){
+		var year        = dateStr.substring(0,4);
+		var month       = dateStr.substring(4,6);
+		var day         = dateStr.substring(6,8);
+		var date        = new Date(year, month-1, day);
+		return date;
+	}
+
+	function cancelRev(id){
+		console.log(id);
+		if(!confirm("예약을 취소하시겠습니까?")){
+			return;
+		}
+
+		console.log("예약취소");
+		var url = "/delReservation";
+		var param = {
+			id : id
+			,date : gCDate
+		};
+
+		var success = function(data){
+			console.log(data);
+			if(data[0].result == true){
+			console.log("회의실 예약취소 성공");
+				console.log(data[0]);
+				var obj = data[1];
+
+				//예약자 이름 제거
+				$("#"+id+" li").text("");
+
+				//예약자 이름 옆 취소버튼 제거
+				$("#"+id+" li").removeClass("cancel");
+
+				//예약취소 이벤트 bind 제거
+				$("#"+id+" li").unbind("click");
+
+				//내용 제거
+				$("#"+id+" ul:eq(1)").text("");
+
+				$("#"+id+"").removeClass("occupy");
+
+				socket.emit('cancelBook', {
+		             id		: id
+		            ,nm		: gUserNm
+		            ,cDate	: gCDate
+		        });
+
+			}else{
+				alert(data[0].message);
+			}
+
+		}
+
+		$.ajax({
+			type	: "POST"
+			,url	: url
+			,data	: param
+			,success: success
+		});
+	}
+
+	function initPopup(openOnEvent){
+		var popupHtml =
+			  '<span style="font-weight:bold;">JC1 회의실 예약</span>'
+			+ '<p id="p_header" style="padding: 0px 0px 5px 0px;margin: 15px 0 0;"></p>'
+			+ '<div style="display:inline-flex;">'
+			+ '<div style="border:1px solid #DDDDDD;height:100px;width:190px;overflow-y:auto;">'
+			+ '<ul id="ul_bmr" style="padding:0 0 0 5px;margin:5px 0 0 0;">□ 대회의실 예약시간</ul>'
+			+ '</div>'
+			+ '<div id="div_smr"style="border:1px solid #DDDDDD;border-left:0px;height:100px;width:190px;float:right;overflow-y:auto;">'
+			+ '<ul id="ul_smr" style="padding:0 0 0 5px;margin:5px 0 0 0;">□ 소회의실 예약시간</ul>'
+			+ '</div>'
+			+ '</div>'
+			+ '<div style="display:inline-flex; padding-top:5px;">'
+			+ '<textarea id="txa_cont" placeholder="내용을 입력해주세요" style="border-color:#DDDDDD;width:377px;height:50px">'
+			+ '</textarea>'
+			+ '</div>'
+			+ '<span style="float:right;">'
+			+ '<a href="#" onclick="saveRev()" class="twitter">확인</a>'
+			+ '<a href="#" onclick="closePopup()" class="dribble">취소</a>'
+			+ '</span>';
+
+		$('#btn_rev').avgrund({
+			height			: 260,
+			holderClass		: 'custom',
+			showClose		: true,
+			showCloseText	: 'X',
+			onBlurContainer	: '.body',
+			openOnEvent		: openOnEvent,
+			template		: popupHtml
+		});
+	}
+
+	function closePopup(){
+		$('.avgrund-ready').removeClass("avgrund-active");
+		$('.avgrund-popin').remove();
+	}
+
+	function clickRev(){
+		var chkId = [];
+
+		$(".checked").each(function(idx, data){
+			//console.log(idx);
+			//console.log(data);
+			chkId.push({
+				id : $(data).attr("id")
+			});
+		});
+
+		if(chkId.length == 0 ){
+			alert("예약하려는 시간을 선택해주세요.");
+			initPopup(true);
+			return;
+		}else{
+			initPopup(false);
+		}
+
+		var msg="";// = "\n";
+
+		$("#p_header").html('<font style="font-weight:bold;color:blue;">'+gCDateTxt + "</font> 회의실을 예약하시겠습니까?");
+		var msgArr = getMeetingTime(chkId);
+
+		if("" != msgArr[0].toString()){
+			var bMsg = msgArr[0].toString()
+			var bMsgArr = bMsg.split(",");
+			//msg += '<ul style="padding:0 0 0 5px;margin:5px 0 0 0;">□ 대회의실 예약시간</ul>';
+			for(var i in bMsgArr){
+				msg += '<li style="padding-left:10px;">☞ ' + bMsgArr[i] + '</li>';
+			}
+		}
+
+		$("#ul_bmr").append(msg);
+
+		msg = "";
+
+		if("" != msgArr[1]){
+			msg += "\n";
+			var sMsgArr = msgArr[1].split(",");
+			//msg += '<ul style="padding:0 0 0 5px;margin:5px 0 0 0;">□ 소회의실 예약시간</ul>';
+			for(var i in sMsgArr){
+				msg += '<li style="padding-left:10px;">☞ ' + sMsgArr[i] + '</li>';
+			}
+		}
+
+		$("#ul_smr").append(msg);
+	}
+
+	function saveRev(){
+		var chkId = [];
+
+		$(".checked").each(function(idx, data){
+			//console.log(idx);
+			//console.log(data);
+			chkId.push({
+				id : $(data).attr("id")
+			});
+		});
+
+		var regCnt = 0;
+		var reqCnt = chkId.length;
+		var successFn = function(data) {
+			console.log("회의실 예약 성공");
+			//console.log(data);
+			if(data[0].result == true){
+				//console.log(data[0]);
+				var obj = data[1];
+				//check 모양 제거
+				$("#"+obj.id).removeClass("checked");
+
+				//예약자 이름 옆 취소버튼 생성
+				$("#"+obj.id+" li").addClass("cancel");
+
+				//예약취소 이벤트 bind
+				$("#"+obj.id+" li").bind("click", function(){
+					cancelRev(obj.id);
+				});
+
+				//예약자 이름 추가
+				setName(obj.id, obj.nm);
+				$("#"+obj.id+"").addClass("occupy");
+
+				//내용 추가
+				$("#"+obj.id+" ul:eq(1)").html(obj.cont.split("\n").join("<br/>"));
+				socket.emit('booked', {
+		             id		: obj.id
+		            ,rev	: '2'
+		            ,nm		: obj.nm
+		            ,cont	: obj.cont
+		            ,cDate	: gCDate
+		        });
+
+			}else{
+				alert(data[0].message);
+			}
+
+			regCnt++;
+
+			if(reqCnt == regCnt){
+				//alert("예약완료하였습니다.");
+				regCnt = 0;
+
+				//Send e-mail
+				var param = {
+					nm : ''
+					,cont : ''
+					, date : ''
+					, time :''
+				}
+
+				//sendMail(param);
+				closePopup();
+			}
+		}
+
+		var url = "/postReservation";
+
+		$(".checked").each(function(idx, data){
+			//console.log(idx);
+			//console.log(data);
+			chkId.push($(data).attr("id"));
+
+			var param = {
+				 date 	: gCDate
+				,id 	: $(data).attr("id")
+				,nm		: gUserNm
+				,cont	: $("#txa_cont").val()
+			};
+
+			$.ajax({
+				type	: "POST"
+				,url	: url
+				,data	: param
+				,success: successFn
+			});
+		});
+	}
+
+	function sendMail(param){
+		var url = "/sendMail"
+		$.ajax({
+			type	: "POST"
+			,url	: url
+			,data	: param
+		});
+	}
+
+</script>
+</head>
+<body>
+<div class="body">
+	<div class="head">
+		<div class="userNm"></div>
+		<div class="date">
+			<a href="#" id="a_prev">◀</a>
+			<span id="date_txt"></span>
+			<a href="#" id="a_next">▶</a>
+		</div>
+	</div>
+	<div class="wrap">
+		<div class="btnWrap">
+			<!-- <input type="button" class="btn" id="btn_rev" value="Reservation" /> -->
+			<a href="#" id="btn_rev" class="btnc dribble" style="font-size: 15pt;">예약</a>
+		</div>
+		<div class="content">
+			<div style="width:550px;">
+				<ul class="nav nav-tabs">
+					<li role="presentation" class="active"><a href="#" style="font-weight:bold;">대회의실</a></li>
+				</ul>
+			</div>
+			<div class="timearea">
+				<div class="tbox" id="b0900">
+					<ul class="boxheader">
+						09:00-09:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b0930">
+					<ul class="boxheader">
+						09:30-10:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b1000">
+					<ul class="boxheader">
+						10:00-10:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b1030">
+					<ul class="boxheader">
+						10:30-11:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b1100">
+					<ul class="boxheader">
+						11:00-11:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b1130">
+					<ul class="boxheader">
+						11:30-12:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b1200">
+					<ul class="boxheader">
+						12:00-12:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b1230">
+					<ul class="boxheader">
+						12:30-13:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b1300">
+					<ul class="boxheader">
+						13:00-13:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+			</div>
+			<div class="timearea" style="border-right:1px solid #E8E8E8;">
+				<div class="tbox" id="b1330">
+					<ul class="boxheader">
+						13:30-14:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b1400">
+					<ul class="boxheader">
+						14:00-14:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b1430">
+					<ul class="boxheader">
+						14:30-15:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b1500">
+					<ul class="boxheader">
+						15:00-15:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b1530">
+					<ul class="boxheader">
+						15:30-16:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b1600">
+					<ul class="boxheader">
+						16:00-16:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b1630">
+					<ul class="boxheader">
+						16:30-17:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b1700">
+					<ul class="boxheader">
+						17:00-17:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="b1730">
+					<ul class="boxheader">
+						17:30-18:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+			</div>
+			<!-- <div style="width:10px;float:left">&nbsp;</div> -->
+			<div style="width:569px;float:right;top:-42px;position:relative;">
+				<ul class="nav nav-tabs" style="width:440px;">
+				  <li role="presentation" class="active"><a href="#" style="font-weight:bold;">소회의실</a></li>
+				</ul>
+			</div>
+			<div class="timearea" style="position:relative;top:-42px;">
+				<div class="tbox" id="s0900">
+					<ul class="boxheader">
+						09:00-09:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s0930">
+					<ul class="boxheader">
+						09:30-10:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s1000">
+					<ul class="boxheader">
+						10:00-10:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s1030">
+					<ul class="boxheader">
+						10:30-11:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s1100">
+					<ul class="boxheader">
+						11:00-11:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s1130">
+					<ul class="boxheader">
+						11:30-12:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s1200">
+					<ul class="boxheader">
+						12:00-12:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s1230">
+					<ul class="boxheader">
+						12:30-13:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s1300">
+					<ul class="boxheader">
+						13:00-13:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+			</div>
+			<div class="timearea" style="position:relative;top:-42px;">
+				<div class="tbox" id="s1330">
+					<ul class="boxheader">
+						13:30-14:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s1400">
+					<ul class="boxheader">
+						14:00-14:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s1430">
+					<ul class="boxheader">
+						14:30-15:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s1500">
+					<ul class="boxheader">
+						15:00-15:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s1530">
+					<ul class="boxheader">
+						15:30-16:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s1600">
+					<ul class="boxheader">
+						16:00-16:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s1630">
+					<ul class="boxheader">
+						16:30-17:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s1700">
+					<ul class="boxheader">
+						17:00-17:30<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+				<div class="tbox" id="s1730">
+					<ul class="boxheader">
+						17:30-18:00<li class="booker"></li>
+					</ul>
+					<ul class="boxcontent"></ul>
+				</div>
+			</div>
+		</div>
+	</div>
+	<footer class="text-center">
+        <div class="footer-above">
+            <div class="container">
+                <div class="row">
+                    <div class="footer-col col-md-4">
+                        <h3>Location</h3>
+                        <p>3481 Melrose Place<br>Beverly Hills, CA 90210</p>
+                    </div>
+                    <div class="footer-col col-md-4">
+                        <h3>Around the Web</h3>
+                        <ul class="list-inline">
+                            <li>
+                                <a href="#" class="btn-social btn-outline"><i class="fa fa-fw fa-facebook"></i></a>
+                            </li>
+                            <li>
+                                <a href="#" class="btn-social btn-outline"><i class="fa fa-fw fa-google-plus"></i></a>
+                            </li>
+                            <li>
+                                <a href="#" class="btn-social btn-outline"><i class="fa fa-fw fa-twitter"></i></a>
+                            </li>
+                            <li>
+                                <a href="#" class="btn-social btn-outline"><i class="fa fa-fw fa-linkedin"></i></a>
+                            </li>
+                            <li>
+                                <a href="#" class="btn-social btn-outline"><i class="fa fa-fw fa-dribbble"></i></a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="footer-col col-md-4">
+                        <h3>About Freelancer</h3>
+                        <p>Freelance is a free to use, open source Bootstrap theme created by <a href="http://startbootstrap.com">Start Bootstrap</a>.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="footer-below">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-12">
+                        Copyright © JC1 Corporation. All Rights Reserved.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+</div>
+</body>
+</html>
